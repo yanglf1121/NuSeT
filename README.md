@@ -10,7 +10,9 @@ The following packages are needed for NuSeT to run:
 5. tqdm (*pip3 install tqdm*)
 
 After finishing installing packages, navigate to the root folder of this repo (NuSeT/), in the command line run *python3 NuSeT.py*.
-
+<p align="center">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/GUI.png" alt="alt text" width="200">
+</p>
 ## The motivation for this work
 Tools for segmenting fluorescent nuclei need to address multiple features and limitations of biological images. Typical issues and limitations include:
 
@@ -28,10 +30,16 @@ This work took the advantages of two state-of-the-art cell segmentation models, 
 4. Graphic user interface for using pre-trained NuSeT models, and for training new models using custom training data.
 
 ## Results using pre-trainined NuSeT model (on Kaggle 2018 data science bowl and images from our lab)
-![](https://github.com/yanglf1121/NuSeT/blob/master/sample_results/1.png | width=100)
+<p align="center">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/1.png" alt="alt text" width="200">      <img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/2.png" alt="alt text" width="200">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/3.png" alt="alt text" width="200">      <img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/4.png" alt="alt text" width="200">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/5.png" alt="alt text" width="200">
+</p>
 
+## Reference and citation
+This work is inspired from https://github.com/tryolabs/luminoth/tree/master/luminoth/models/fasterrcnn, https://github.com/endernewton/tf-faster-rcnn, https://www.kaggle.com/c/data-science-bowl-2018, https://github.com/matterport/Mask_RCNN.
 
-
-
+If you like our NuSeT, here is the paper for this work: https://www.biorxiv.org/content/10.1101/749754v1
+Please cite this paper if NuSeT helps your work.
 
 
