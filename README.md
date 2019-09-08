@@ -28,7 +28,7 @@ This work took the advantages of two state-of-the-art cell segmentation models, 
 4. Graphic user interface for using pre-trained NuSeT models, and for training new models using custom training data.
 
 ## Results using pre-trainined NuSeT model (on Kaggle 2018 data science bowl and images from our lab)
-![Sample result](https://github.com/yanglf1121/NuSeT/sample_results/1.png)
+![](https://github.com/yanglf1121/NuSeT/blob/master/sample_results/1.png | width=100)
 
 
 
