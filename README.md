@@ -35,7 +35,7 @@ This work took the advantages of two state-of-the-art cell segmentation models, 
 <p align="center">
 <img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/1.png" alt="alt text" width="200">      <img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/2.png" alt="alt text" width="200">
 <img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/3.png" alt="alt text" width="200">      <img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/4.png" alt="alt text" width="200">
-<img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/5.png" alt="alt text" width="200">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/5.png" alt="alt text" width="３00">
 </p>
 
 ## Reference and citation
