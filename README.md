@@ -13,6 +13,8 @@ After finishing installing packages, navigate to the root folder of this repo (N
 <p align="center">
 <img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/GUI.png" alt="alt text" width="200">
 </p>
+For the detailed user-guide, please see our paper: https://www.biorxiv.org/content/10.1101/749754v1
+
 ## The motivation for this work
 Tools for segmenting fluorescent nuclei need to address multiple features and limitations of biological images. Typical issues and limitations include:
 
