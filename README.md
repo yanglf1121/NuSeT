@@ -9,7 +9,9 @@ The following packages are needed for NuSeT to run:
 4. scikit-image (*pip3 install scikit-image*)
 5. tqdm (*pip3 install tqdm*)
 
-After finishing installing packages, navigate to the root folder of this repo (NuSeT/), in the command line run *python3 NuSeT.py*.
+After finishing installing packages, download the 2 weight files from google drive:(https://drive.google.com/file/d/1fcs1F2lGPX0ejzEGPZ63YNF3AmUbdBcM/view?usp=sharing
+https://drive.google.com/file/d/1hythQfvD6kbaUClAPY96nHcXB7RXVmBx/view?usp=sharing), move those files to Network/ folder. 
+Then navigate to the root folder of this repo (NuSeT/), in the command line run *python3 NuSeT.py*.
 <p align="center">
 <img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/GUI.png" alt="alt text" width="200">
 </p>
