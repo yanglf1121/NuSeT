@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter.filedialog import askopenfilename, askdirectory, asksaveasfile
 from tkinter.ttk import Progressbar
 import PIL.Image, PIL.ImageTk
+from skimage.transform import rescale
 import numpy as np
 import os
 import tensorflow as tf
@@ -27,6 +28,7 @@ class NuSeT:
         self.params['optimizer'] = 'rmsprop'
         self.params['epochs'] = 35
         self.params['normalization_method'] = 'fg'
+        self.params['scale_ratio'] = 1.0
 
         self.window = window
         self.window.title(window_title)
@@ -174,11 +176,24 @@ class NuSeT:
                 error_label = Label(win, text="image is not grascale or RGB")
                 error_label.pack(side="top", fill='both', expand=False, padx=1, pady=1)
                 return
-        self.fix_img_dimension()
 
         #self.display_image(PIL.Image.fromarray(self.im_np), sub_title="Grayscale")
         with tf.Graph().as_default():
+            # Rescale the image if the nuclei is too small or too big
+            if self.params['scale_ratio'] != 1:
+                self.im_np = rescale(self.im_np, self.params['scale_ratio'])
+                self.height, self.width = self.im_np.shape[0], self.im_np.shape[1]
+
+            self.fix_img_dimension()
             self.im_mask_np = test_single_img(self.params, [self.im_np])
+
+            # Revert the image size to be the original one
+            if self.params['scale_ratio'] != 1:
+                self.im_mask_np = rescale(self.im_np, 1/self.params['scale_ratio'])
+                self.height, self.width = self.im_mask_np.shape[0], self.im_mask_np.shape[1]
+                self.im_mask_np[self.im_mask_np>0.5] = 1
+                self.im_mask_np[self.im_mask_np<0.5] = 0
+
             self.im_mask = PIL.Image.fromarray((self.im_mask_np*255))
             self.display_image(self.im_mask, sub_title="Segmentation Results")
 
@@ -207,7 +222,7 @@ class NuSeT:
     def configuration(self):
         win = Toplevel()
         win.title('configuration')
-        win.geometry('250x180')
+        win.geometry('250x210')
         frame1 = Frame(win)
         frame1.pack(side="top")
         frame2 = Frame(win)
@@ -218,6 +233,8 @@ class NuSeT:
         frame4.pack(side="top")
         frame5 = Frame(win)
         frame5.pack(side="top")
+        frame6 = Frame(win)
+        frame6.pack(side="top")
 
         self.watershed_option = IntVar(value=1)
         watershed_label = Label(frame1, text="Watershed")
@@ -243,7 +260,13 @@ class NuSeT:
         self.postProcess_check_box = Checkbutton(frame4, text=" ", variable=self.postProcess_option)
         self.postProcess_check_box.pack(side="right", fill='both', expand=True, padx=5, pady=5)
 
-        self.save_configuration_btn = Button(frame5, text="Save", command=self.save_configurarion)
+        scale_label = Label(frame5, text="Resize ratio")
+        scale_label.pack(side="left", fill='both', expand=True, padx=5, pady=5)
+        self.scale_text = Text(frame5, height=1, width=5, borderwidth=2, relief="groove")
+        self.scale_text.insert(END, "1.0")
+        self.scale_text.pack(side="right", fill='both', expand=True, padx=5, pady=5)
+
+        self.save_configuration_btn = Button(frame6, text="Save", command=self.save_configurarion)
         self.save_configuration_btn.pack(side="top", fill='both', expand=True, padx=4, pady=4)
 
     def save_configurarion(self):
@@ -274,6 +297,11 @@ class NuSeT:
             self.params['postProcess'] = 'yes'
         else:
             self.params['postProcess'] = 'no'
+        
+        if self.scale_text.get("1.0","end-1c")=="":
+            self.params['scale_ratio'] = 1.0
+        else:
+            self.params['scale_ratio'] = float(self.scale_text.get("1.0","end-1c"))
         
     def train_configuration(self):
         win = Toplevel()

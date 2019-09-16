@@ -5,6 +5,7 @@ import csv
 
 from PIL import Image
 from tqdm import tqdm
+from skimage.transform import rescale
 
 from model_layers.models import UNET
 from model_layers.model_RPN import RPN
@@ -39,7 +40,8 @@ def test(params, self):
     bbox_min_score = params['min_score'] 
     nms_thresh = params['nms_threshold']
     postProcess = params['postProcess']
-    
+    resize_scale = params['scale_ratio']
+
     # Load the data
     # x_test, y_test: test images and corresponding labels
     x_id, x_test = load_data_test(self.batch_seg_path)
@@ -127,11 +129,22 @@ def test(params, self):
     saver.restore(sess,'./Network/whole_norm.ckpt')
     sess.run(tf.local_variables_initializer())
     for j in tqdm(range(0,num_batches_test)):
-        # whole image normalization   
-        batch_data = x_test[j]
+        # whole image normalization
+        batch_data = x_test[j]   
         batch_data_shape = batch_data.shape
-        image_normalized_wn = whole_image_norm(batch_data)
-        image_normalized_wn = np.reshape(image_normalized_wn, [1,batch_data_shape[0],batch_data_shape[1],1])
+        image = np.reshape(batch_data, [batch_data_shape[0],batch_data_shape[1]])
+
+        if resize_scale != 1:
+            image = rescale(image, self.params['scale_ratio'], anti_aliasing=True)
+
+        # Clip the height and width to be 16-fold 
+        imheight, imwidth = image.shape
+        imheight = imheight//16*16
+        imwidth = imwidth//16*16
+        image = image[:imheight, :imwidth]
+
+        image_normalized_wn = whole_image_norm(image)
+        image_normalized_wn = np.reshape(image_normalized_wn, [1,imheight,imwidth,1])
         
         
         masks = sess.run(pred_masks, feed_dict={train_initial:image_normalized_wn})
@@ -149,10 +162,19 @@ def test(params, self):
         batch_data = x_test[j]
         batch_data_shape = batch_data.shape
         image = np.reshape(batch_data, [batch_data_shape[0],batch_data_shape[1]])
+
+        if resize_scale != 1:
+            image = rescale(image, self.params['scale_ratio'])
         
+        # Clip the height and width to be 16-fold 
+        imheight, imwidth = image.shape
+        imheight = imheight//16*16
+        imwidth = imwidth//16*16
+        image = image[:imheight, :imwidth]
+
         # Final pass, foreground normalization to get final masks
         image_normalized_fg = foreground_norm(image, masks1[j])
-        image_normalized_fg = np.reshape(image_normalized_fg, [1,batch_data_shape[0],batch_data_shape[1],1])
+        image_normalized_fg = np.reshape(image_normalized_fg, [1,imheight,imwidth,1])
         
         # If adding watershed, we save the watershed masks separately
         if perform_watershed == 'yes':
@@ -162,9 +184,13 @@ def test(params, self):
             if postProcess == 'yes':
                 masks_watershed = clean_image(masks_watershed)
 
+            # Revert the scale to original display
+            if resize_scale != 1:
+                masks_watershed = rescale(masks_watershed, 1/self.params['scale_ratio'])
+            
             I8 = (((masks_watershed - masks_watershed.min()) / (masks_watershed.max() - masks_watershed.min())) * 255).astype(np.uint8)
             img = Image.fromarray(I8)
-            img.save(self.batch_seg_path + x_id[j] + '_masks_watershed1.png')
+            img.save(self.batch_seg_path + x_id[j] + '_masks_watershed.png')
 
         else:
             
@@ -176,6 +202,10 @@ def test(params, self):
             # enable these 2 lines if your want to see the detection result
             #image_pil = draw_top_nms_proposals(pred_dict, batch_data, min_score=bbox_min_score, draw_gt=False)
             #image_pil.save(str(j)+'_pred.png')
+
+            # Revert the scale to original display
+            if resize_scale != 1:
+                masks = rescale(masks, 1/self.params['scale_ratio'])
 
             I8 = (((masks - masks.min()) / (masks.max() - masks.min())) * 255).astype(np.uint8)
             img = Image.fromarray(I8)

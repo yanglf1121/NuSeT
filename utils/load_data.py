@@ -169,17 +169,6 @@ def load_data_train(self, normalization_method='fg'):
 
     return (x_train, x_val, y_train, y_val, w_train, w_val, bbox_train, bbox_val)
 
-def load_data_val():
-
-    # Get the data.
-    f = open('./dataset/f_only/kaggle_test.pckl', 'rb')
-    x_test = pickle.load(f)
-    y_test = pickle.load(f)
-
-    f.close()
-    
-    return x_test, y_test
-
 def load_data_test(path_to_file):
     if len(list_files(path_to_file, 'png')) > 0:
         all_test = list_files(path_to_file, 'png')
@@ -193,12 +182,16 @@ def load_data_test(path_to_file):
     x_id = []
     for j in range(0,num_testing):
         im = Image.open(path_to_file + all_test[j])
-
         im = np.asarray(im)
+        # if the image is rgb, convert to grayscale
+        if len(im.shape) == 3:
+            r, g, b = im[:,:,0], im[:,:,1], im[:,:,2]
+            im = 0.2989 * r + 0.5870 * g + 0.1140 * b
         # fix height and width 
         height,width = im.shape
-        width = width//16*16
-        height = height//16*16
+        # The fix_dimension function has been moved inside the test.py
+        #width = width//16*16
+        #height = height//16*16
         im = im[:height,:width]
         x_test.append(im)
         x_id.append(all_test[j])
