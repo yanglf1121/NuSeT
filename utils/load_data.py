@@ -130,7 +130,7 @@ def load_data_train(self, normalization_method='fg'):
         width = width//16*16
         height = height//16*16
         im = im[:height,:width]
-        y_train.append(im/255)
+        y_train.append(im/np.max(255))
         w_train.append(unetwmap(im))
         bbox_train.append(bounding_box(im))
 
