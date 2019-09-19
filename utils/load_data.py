@@ -16,7 +16,6 @@ def unetwmap(mask, w0=10, sigma=25):
     Calculate the U-Net Weight Map
     Adapted from unetwmap function written by Fidel A. Guerrero Pena
     """
-    mask = mask/np.max(mask)
     uvals = np.unique(mask)
     wmp = np.zeros(len(uvals))
 
@@ -52,8 +51,6 @@ def unetwmap(mask, w0=10, sigma=25):
 
 def bounding_box(mask):
     
-   # normalize to binary
-    mask = mask/np.max(mask)
     mask_label,num_cells = label(mask)
 
     # The coordinates of bounding box denotes x,y,w,h
@@ -86,53 +83,61 @@ def load_data_train(self, normalization_method='fg'):
     else:
         all_train = list_files(img_dir, 'tif')
 
-    self.training_results.set('Loading data ...')
-    self.window.update()
-
-    # Get the data.
-    num_training = len(all_train)
-    all_train.sort()
-    # The training data
-    x_train = []
-
-    for j in range(0,num_training):
-        im = Image.open(img_dir + all_train[j])
-
-        im = np.asarray(im)
-        # fix height and width 
-        height,width = im.shape
-        width = width//16*16
-        height = height//16*16
-        im = im[:height,:width]
-        x_train.append(im)
-
-    
     if len(list_files(imlabel_dir, 'png')) > 0:
         all_train_label = list_files(imlabel_dir, 'png')
     else:
         all_train_label = list_files(imlabel_dir, 'tif')
-    all_train_label.sort()
-    # Get the data.
-    num_training_label = len(all_train_label)
-    
+
     self.training_results.set('Computing weight matrix ...')
     self.window.update()
+
+    # Get the data
+    num_training = len(all_train)
+    num_training_label = len(all_train_label)
+
+    # The number of training images and training labels should be the same
+    assert num_training == num_training_label
+
+    all_train.sort()
+    all_train_label.sort()
+ 
+    # The training data
+    x_train = []
     # The training label
     y_train = []
     w_train = []
     bbox_train = []
-    for j in range(0,num_training_label):
-        im = Image.open(imlabel_dir + all_train_label[j])
 
+    for j in range(0,num_training):
+        im = Image.open(img_dir + all_train[j])
         im = np.asarray(im)
         # fix height and width 
         height,width = im.shape
         width = width//16*16
         height = height//16*16
         im = im[:height,:width]
-        y_train.append(im/np.max(255))
-        w_train.append(unetwmap(im))
-        bbox_train.append(bounding_box(im))
+
+        iml = Image.open(imlabel_dir + all_train_label[j])
+        iml = np.asarray(iml)
+        # fix height and width 
+        height,width = iml.shape
+        width = width//16*16
+        height = height//16*16
+        iml = iml[:height,:width]
+
+        # Remove training images with blank labels/annotations
+        # to avoid dividing by 0
+        if np.max(iml) > 1:
+            y_train.append(iml/np.max(iml))
+            w_train.append(unetwmap(iml/np.max(iml)))
+            bbox_train.append(bounding_box(iml/np.max(iml)))
+            x_train.append(im)   
+  
+        elif np.max(iml) == 1:
+            y_train.append(iml)
+            w_train.append(unetwmap(iml))
+            bbox_train.append(bounding_box(iml))
+            x_train.append(im)
 
     # split the train and validation data 7/8 and 1/8 
     num_train = len(x_train)//8*7
