@@ -251,7 +251,7 @@ def train_NuSeT(self):
 
         print('Epoch: %d - loss: %.2f - cls_loss: %.2f - reg_loss: %.2f - seg_loss: %.2f - mean_IU: %.4f - f1: %.4f - pixel_accuracy: %.4f' % (iteration, loss_total, cls_loss, reg_loss, seg_loss, _mean_IU, _f1, _pixel_accuracy))
 
-        self.training_results.set('Epoch' + str(iteration) +
+        self.training_results.set('Epoch ' + str(iteration) +
  ', loss ' + '{0:.2f}'.format(loss_total) + ', mean IU ' + '{0:.2f}'.format(_mean_IU))
         self.window.update()
 	
@@ -407,7 +407,7 @@ def train_UNet(self):
 
         print('Epoch: %d - loss: %.2f - mean_IU: %.4f - f1: %.4f - pixel_accuracy: %.4f' % (iteration, loss_total, _mean_IU, _f1, _pixel_accuracy))
 
-        self.training_results.set('Epoch' + str(iteration) +
+        self.training_results.set('Epoch ' + str(iteration) +
 ', loss ' + '{0:.2f}'.format(loss_total) + ', mean IU ' + '{0:.2f}'.format(_mean_IU))
         self.window.update()
 

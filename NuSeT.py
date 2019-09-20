@@ -250,7 +250,7 @@ class NuSeT:
 
     def configuration(self):
         win = Toplevel()
-        win.title('configuration')
+        win.title('Configuration')
         win.geometry('250x210')
         frame1 = Frame(win)
         frame1.pack(side="top")
