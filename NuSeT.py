@@ -389,7 +389,9 @@ class NuSeT:
             self.params['lr'] = float(self.learning_rate_text.get("1.0","end-1c"))
         
         self.params['epochs'] = int(self.epoch_text.get("1.0","end-1c"))
-        self.params['optimizer'] = self.optmizer.get()
-        self.params['model'] = self.model.get()
+        if self.optmizer.get() != "":
+            self.params['optimizer'] = self.optmizer.get()
+        if self.model.get() != "":
+            self.params['model'] = self.model.get()
 
 NuSeT(Tk(), "NuSeT")
