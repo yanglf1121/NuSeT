@@ -385,7 +385,7 @@ def train_UNet(self):
                     batch_label = np.reshape(y_val[j], [1,batch_data_shape[0],batch_data_shape[1],1])
                     batch_edge = np.reshape(w_val[j], [1,batch_data_shape[0],batch_data_shape[1],1])
 
-                    loss_temp  = sess.run([final_loss], feed_dict={train_initial:batch_data, labels:batch_label, edge_weights:batch_edge})
+                    loss_temp  = sess.run(final_loss, feed_dict={train_initial:batch_data, labels:batch_label, edge_weights:batch_edge})
 
                     sess.run([metrics_op], feed_dict={train_initial:batch_data, labels:batch_label, edge_weights:batch_edge})
                     
@@ -405,9 +405,9 @@ def train_UNet(self):
                                     
                     j = j + 1
 
-    print('Epoch: %d - loss: %.2f - mean_IU: %.4f - f1: %.4f - pixel_accuracy: %.4f' % (iteration, loss_total, _mean_IU, _f1, _pixel_accuracy))
+        print('Epoch: %d - loss: %.2f - mean_IU: %.4f - f1: %.4f - pixel_accuracy: %.4f' % (iteration, loss_total, _mean_IU, _f1, _pixel_accuracy))
 
-    self.training_results.set('Epoch' + str(iteration) +
+        self.training_results.set('Epoch' + str(iteration) +
 ', loss ' + '{0:.2f}'.format(loss_total) + ', mean IU ' + '{0:.2f}'.format(_mean_IU))
     self.window.update()
 

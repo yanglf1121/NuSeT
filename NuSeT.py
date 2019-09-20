@@ -335,7 +335,7 @@ class NuSeT:
     def train_configuration(self):
         win = Toplevel()
         win.title('Configuration')
-        win.geometry('250x150')
+        win.geometry('250x180')
         frame1 = Frame(win)
         frame1.pack(side="top")
         frame2 = Frame(win)
