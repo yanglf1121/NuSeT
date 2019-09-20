@@ -359,5 +359,162 @@ def test_single_img(params, x_test):
     sess.close()
     
     return masks
+
+def test_UNet(params, self):
+    """Predict masks for all images in a given directory, and save them  
+
+    Args:
+        params (dict): the parameters of the network
+    """
+
+    postProcess = params['postProcess']
+    resize_scale = params['scale_ratio']
+
+    # Load the data
+    # x_test, y_test: test images and corresponding labels
+    x_id, x_test = load_data_test(self.batch_seg_path)
+    # pred_dict and pred_dict_final save all the temp variables
+    pred_dict_final = {}
     
+    train_initial = tf.placeholder(dtype=tf.float32, shape=[1, None, None, 1])
+
+    input_shape = tf.shape(train_initial)
+    
+    input_height = input_shape[1]
+    input_width = input_shape[2]
+    im_shape = tf.cast([input_height, input_width], tf.float32)
+    
+    # number of classes needed to be classified, for our case this equals to 2
+    # (foreground and background)
+    nb_classes = 2
+    
+    # feed the initial image to U-Net, we expect 2 outputs: 
+    # 1. feat_map of shape (?,hf,wf,1024), which will be passed to the 
+    # region proposal network
+    # 2. final_logits of shape(?,h,w,2), which is the prediction from U-net
+    with tf.variable_scope('model_U-Net') as scope:
+        final_logits, feat_map = UNET(nb_classes, train_initial)
+    
+    # The final_logits has 2 channels for foreground/background softmax scores,
+    # then we get prediction with larger score for each pixel
+    pred_masks = tf.argmax(final_logits, axis=3)
+    pred_masks = tf.reshape(pred_masks,[input_height,input_width])
+    pred_masks = tf.to_float(pred_masks)
+    
+    # start point for testing, and end point for graph 
+    sess = tf.Session()
+
+    sess.run(tf.global_variables_initializer())
+
+    num_batches_test = len(x_test) 
+
+    saver = tf.train.Saver()
+    # Restore the per-image normalization model from the trained network
+    saver.restore(sess,'./Network/UNet.ckpt')
+    sess.run(tf.local_variables_initializer())
+    for j in tqdm(range(0,num_batches_test)):
+        # whole image normalization
+        batch_data = x_test[j]   
+        batch_data_shape = batch_data.shape
+        image = np.reshape(batch_data, [batch_data_shape[0],batch_data_shape[1]])
+
+        if resize_scale != 1:
+            image = rescale(image, self.params['scale_ratio'], anti_aliasing=True)
+
+        # Clip the height and width to be 16-fold 
+        imheight, imwidth = image.shape
+        imheight = imheight//16*16
+        imwidth = imwidth//16*16
+        image = image[:imheight, :imwidth]
+
+        image_normalized_wn = whole_image_norm(image)
+        image_normalized_wn = np.reshape(image_normalized_wn, [1,imheight,imwidth,1])
+        
+        
+        masks = sess.run(pred_masks, feed_dict={train_initial:image_normalized_wn})
+        self.progress_var.set(j/num_batches_test*100)
+        self.window.update()
+        if postProcess == 'yes':
+            masks = clean_image(masks)
+
+        # Revert the scale to original display
+        if resize_scale != 1:
+            masks = rescale(masks, 1/self.params['scale_ratio'])
+            
+        I8 = (((masks - masks.min()) / (masks.max() - masks.min())) * 255).astype(np.uint8)
+        img = Image.fromarray(I8)
+        img.save(self.batch_seg_path + x_id[j] + '_masks.png')
+    sess.close()
+
+# This function is similar to the function above, but only for one image that is 
+# displayed on NuSeT GUI
+def test_single_img_UNet(params, x_test):
+    """input the image, return the segmented mask
+
+    Args:
+        params (dict): the parameters of the network
+        x_test: the input image in numpy array
+    """
+    
+    # Get the testing parameters 
+    postProcess = params['postProcess']
+    
+    # pred_dict and pred_dict_final save all the temp variables
+    pred_dict_final = {}
+    
+    train_initial = tf.placeholder(dtype=tf.float32, shape=[1, None, None, 1])
+
+    input_shape = tf.shape(train_initial)
+    
+    input_height = input_shape[1]
+    input_width = input_shape[2]
+    im_shape = tf.cast([input_height, input_width], tf.float32)
+    
+    # number of classes needed to be classified, for our case this equals to 2
+    # (foreground and background)
+    nb_classes = 2
+    
+    # feed the initial image to U-Net, we expect 2 outputs: 
+    # 1. feat_map of shape (?,32,32,1024), which will be passed to the 
+    # region proposal network
+    # 2. final_logits of shape(?,512,512,2), which is the prediction from U-net
+    with tf.variable_scope('model_U-Net') as scope:
+        final_logits, feat_map = UNET(nb_classes, train_initial)
+    
+    # The final_logits has 2 channels for foreground/background softmax scores,
+    # then we get prediction with larger score for each pixel
+    pred_masks = tf.argmax(final_logits, axis=3)
+    pred_masks = tf.reshape(pred_masks,[input_height,input_width])
+    pred_masks = tf.to_float(pred_masks)
+
+    # start point for testing, and end point for graph 
+
+    sess = tf.Session()
+    sess.run(tf.global_variables_initializer())
+
+    num_batches_test = len(x_test) 
+
+    saver = tf.train.Saver()
+    
+    masks1 = []
+
+    # Restore the per-image normalization model from the trained network
+    saver.restore(sess,'./Network/UNet.ckpt')
+    sess.run(tf.local_variables_initializer())
+    for j in tqdm(range(0,num_batches_test)):
+        # whole image normalization   
+        batch_data = x_test[j]
+        batch_data_shape = batch_data.shape
+        image_normalized_wn = whole_image_norm(batch_data)
+        image_normalized_wn = np.reshape(image_normalized_wn, [1,batch_data_shape[0],batch_data_shape[1],1])
+        
+        
+        masks = sess.run(pred_masks, feed_dict={train_initial:image_normalized_wn})
+
+        if postProcess == 'yes':
+            masks = clean_image(masks)
+
+    sess.close()
+    
+    return masks
 

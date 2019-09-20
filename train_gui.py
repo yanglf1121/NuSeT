@@ -25,7 +25,7 @@ from utils.image_vis import draw_rpn_bbox_pred, draw_gt_boxes, draw_top_nms_prop
 
 
 # inspired from https://github.com/tryolabs/luminoth/blob/master/luminoth/models/fasterrcnn/rpn_test.py
-def train_and_score(self):
+def train_NuSeT(self):
     """Train the model, return test loss.
 
     Args:
@@ -266,7 +266,157 @@ def train_and_score(self):
             saver.save(sess, './Network/foreground.ckpt')
         
     sess.close()
+
+# Train the pure U-Net model
+def train_UNet(self):
+    """Train the model, return test loss.
+
+    Args:
+        network (dict): the parameters of the network
+    return:
+        accuracy (float)
+    """
+    # Get the training parameters    
+    learning_rate = self.params['lr']
+    optimizer = self.params['optimizer'] 
+    num_epoch = self.params['epochs']
+    normalization_method = self.params['normalization_method']
+    # Load the data
+    # x_train, y_train: training images and corresponding labels
+    # x_val, y_val: validation images and corresponding labels
+    # w_train, w_val: training and validation weight matrices for U-Net
+    # bbox_train, bbox_val: bounding box coordinates for train and validation dataset
+    x_train, x_val, y_train, y_val, w_train, w_val, bbox_train, bbox_val = load_data_train(self, 'wn')
     
-    # Because the genetic algorithm select bigger value for fitness, but we want smaller loss
-    return 1  # 1 is accuracy. 0 is loss.
+    # pred_dict and pred_dict_final save all the temp variables
+    pred_dict_final = {}
+    
+    # tensor placeholder for training images with labels
+    train_initial = tf.placeholder(dtype=tf.float32, shape=[1, None, None, 1])
+    labels = tf.placeholder(dtype=tf.float32, shape=[1, None, None, 1])
+    
+    # tensor placeholder for weigth matrices and ground truth bounding boxes
+    edge_weights = tf.placeholder(dtype=tf.float32, shape=[1, None, None, 1])
+    
+    input_shape = tf.shape(train_initial)
+    
+    input_height = input_shape[1]
+    input_width = input_shape[2]
+    im_shape = tf.cast([input_height, input_width], tf.float32)
+    
+    # number of classes needed to be classified, for our case this equals to 2
+    # (foreground and background)
+    nb_classes = 2
+    
+    
+    # feed the initial image to U-Net, we expect 2 outputs: 
+    # 1. feat_map of shape (1,input_height/16,input_width/16,1024), which will be passed to the 
+    # region proposal network
+    # 2. final_logits of shape(1,input_height,input_width,2), which is the prediction from U-net
+    with tf.variable_scope('model_U-Net') as scope:
+        final_logits, feat_map = UNET(nb_classes, train_initial)
+    
+    # The final_logits has 2 channels for foreground/background softmax scores,
+    # then we get prediction with larger score for each pixel
+    pred_masks = tf.argmax(final_logits, axis=3)
+    pred_masks = tf.reshape(pred_masks,[input_height,input_width])
+    pred_masks = tf.to_float(pred_masks)
+    
+    SEG_loss = segmentation_loss(final_logits, pred_masks, labels, edge_weights, mode = 'COMBO')
+    
+    final_loss = SEG_loss
+    
+    # Metrics are pixel accuracy, mean IU, mean accuracy, root mean squared error
+    metrics, metrics_op = compute_metrics(pred_masks, labels)
+    
+    pred_dict_final['unet_mask'] = pred_masks 
+
+    # get the optimizer
+    gen_train_op = optimizer_fun(optimizer, final_loss, learning_rate=learning_rate)
+
+    # start point for training, and end point for graph 
+    sess = tf.Session()
+    
+    sess.run(tf.global_variables_initializer())
+
+    num_batches = len(x_train)
+    num_batches_val = len(x_val) 
+
+    saver = tf.train.Saver()
+
+    self.training_results.set('U-Net: Start training ...')
+    self.window.update()
+
+    # training images indexes will be shuffled at every epoch during training
+    idx = np.arange(num_batches)
+    
+    best_IU = 0
+    for iteration in range(0,num_epoch):
+        # The batch pointer to validation data
+        j = 0
+        sess.run(tf.local_variables_initializer())
+        if iteration == num_epoch - 1 and normalization_method == 'wn':
+            self.whole_norm_y_pred = []
+
+        # shuffle the sequence of the training data for the current epoch
+        np.random.shuffle(idx)
+
+        for i in tqdm(range(0,num_batches)):
+            self.train_progress_var.set(i/num_batches*100)
+            self.window.update()
+            # Generate the batch data from training data and training label
+            batch_data = x_train[idx[i]]
+            batch_data_shape = batch_data.shape            
+            batch_data = np.reshape(batch_data, [1,batch_data_shape[0],batch_data_shape[1],1])
+            batch_label = np.reshape(y_train[idx[i]], [1,batch_data_shape[0],batch_data_shape[1],1])
+            batch_edge = np.reshape(w_train[idx[i]], [1,batch_data_shape[0],batch_data_shape[1],1])
+
+            # Here include the optimizer to actually perform learning
+            sess.run([gen_train_op], feed_dict={train_initial:batch_data, labels:batch_label, edge_weights:batch_edge})
+
+            # Only calculate the accuracy and loss after the training epoch
+            if i == num_batches - 1:
+                while j < num_batches_val:
+                    # Generate the batch data from val data and val label
+
+                    batch_data = x_val[j]
+                    batch_data_shape = batch_data.shape  
+                    batch_data = np.reshape(batch_data, [1,batch_data_shape[0],batch_data_shape[1],1])
+                    batch_label = np.reshape(y_val[j], [1,batch_data_shape[0],batch_data_shape[1],1])
+                    batch_edge = np.reshape(w_val[j], [1,batch_data_shape[0],batch_data_shape[1],1])
+
+                    loss_temp  = sess.run([final_loss], feed_dict={train_initial:batch_data, labels:batch_label, edge_weights:batch_edge})
+
+                    sess.run([metrics_op], feed_dict={train_initial:batch_data, labels:batch_label, edge_weights:batch_edge})
+                    
+                    if j == num_batches_val - 1:
+                        metrics_all  = sess.run(metrics, feed_dict={train_initial:batch_data, labels:batch_label, edge_weights:batch_edge})
+                    
+                        _mean_IU = metrics_all['global']['mean_IU']
+                        _pixel_accuracy = metrics_all['global']['pixel_accuracy']
+                        _f1 = 2 * _mean_IU / (1 + _mean_IU)
+                        _rmse = metrics_all['global']['rmse']
+                        
+                    # Get moving average of metrics and losses
+                    if j == 0:
+                        loss_total = loss_temp
+                    else:
+                        loss_total = (1 - 1 / (j + 1)) * loss_total + 1 / (j + 1) * loss_temp
+                                    
+                    j = j + 1
+
+    print('Epoch: %d - loss: %.2f - mean_IU: %.4f - f1: %.4f - pixel_accuracy: %.4f' % (iteration, loss_total, _mean_IU, _f1, _pixel_accuracy))
+
+    self.training_results.set('Epoch' + str(iteration) +
+', loss ' + '{0:.2f}'.format(loss_total) + ', mean IU ' + '{0:.2f}'.format(_mean_IU))
+    self.window.update()
+
+    # Keep track of the best model in the last 10 epoches and use that as the best model
+    
+    if iteration >= num_epoch - 10 and normalization_method == 'wn' and _mean_IU > best_IU:
+        best_IU = _mean_IU
+        saver.save(sess, './Network/UNet.ckpt')
+        
+    sess.close()
+    
 

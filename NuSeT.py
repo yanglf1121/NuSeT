@@ -6,8 +6,8 @@ from skimage.transform import rescale
 import numpy as np
 import os
 import tensorflow as tf
-from test import test, test_single_img
-from train_gui import train_and_score
+from test import test, test_single_img, test_UNet, test_single_img_UNet
+from train_gui import train_NuSeT, train_UNet 
 TITLE_FONT = 'Arial 15 bold'
 BUTTON_FONT = 'Arial 18'
 PROGRESS_FONT = 'Arial 15'
@@ -29,6 +29,7 @@ class NuSeT:
         self.params['epochs'] = 35
         self.params['normalization_method'] = 'fg'
         self.params['scale_ratio'] = 1.0
+        self.params['model'] = 'NuSeT'
 
         self.window = window
         self.window.title(window_title)
@@ -153,16 +154,21 @@ class NuSeT:
                             )
         self.train_label_path = self.train_label_path + '/'
 
-        # Train with whole image norm for the first round
-        self.params['normalization_method'] = 'wn'
-        with tf.Graph().as_default():
-            train_and_score(self)
-        
-        # Train with foreground normalization for the second round
-        self.params['normalization_method'] = 'fg'
-        with tf.Graph().as_default():
-            train_and_score(self)
-        
+        # By default, we use NuSeT to train our model
+        if self.params['model'] == 'NuSeT':
+            # Train with whole image norm for the first round
+            self.params['normalization_method'] = 'wn'
+            with tf.Graph().as_default():
+                train_NuSeT(self)
+            
+            # Train with foreground normalization for the second round
+            self.params['normalization_method'] = 'fg'
+            with tf.Graph().as_default():
+                train_NuSeT(self)
+        # Train with U-Net
+        else:
+            with tf.Graph().as_default():
+                train_UNet(self)
 
     def segmentation(self):
         if len(self.im_np.shape) == 3:
@@ -177,33 +183,56 @@ class NuSeT:
                 error_label.pack(side="top", fill='both', expand=False, padx=1, pady=1)
                 return
 
-        #self.display_image(PIL.Image.fromarray(self.im_np), sub_title="Grayscale")
-        with tf.Graph().as_default():
-            # Rescale the image if the nuclei is too small or too big
-            if self.params['scale_ratio'] != 1:
-                self.im_np = rescale(self.im_np, self.params['scale_ratio'])
-                self.height, self.width = self.im_np.shape[0], self.im_np.shape[1]
+        if self.params['model'] == 'NuSeT':
+            with tf.Graph().as_default():
+                # Rescale the image if the nuclei is too small or too big
+                if self.params['scale_ratio'] != 1:
+                    self.im_np = rescale(self.im_np, self.params['scale_ratio'])
+                    self.height, self.width = self.im_np.shape[0], self.im_np.shape[1]
 
-            self.fix_img_dimension()
-            self.im_mask_np = test_single_img(self.params, [self.im_np])
+                self.fix_img_dimension()
+                self.im_mask_np = test_single_img(self.params, [self.im_np])
 
-            # Revert the image size to be the original one
-            if self.params['scale_ratio'] != 1:
-                self.im_mask_np = rescale(self.im_np, 1/self.params['scale_ratio'])
-                self.height, self.width = self.im_mask_np.shape[0], self.im_mask_np.shape[1]
-                self.im_mask_np[self.im_mask_np>0.5] = 1
-                self.im_mask_np[self.im_mask_np<0.5] = 0
+                # Revert the image size to be the original one
+                if self.params['scale_ratio'] != 1:
+                    self.im_mask_np = rescale(self.im_np, 1/self.params['scale_ratio'])
+                    self.height, self.width = self.im_mask_np.shape[0], self.im_mask_np.shape[1]
+                    self.im_mask_np[self.im_mask_np>0.5] = 1
+                    self.im_mask_np[self.im_mask_np<0.5] = 0
 
-            self.im_mask = PIL.Image.fromarray((self.im_mask_np*255))
-            self.display_image(self.im_mask, sub_title="Segmentation Results")
+                self.im_mask = PIL.Image.fromarray((self.im_mask_np*255))
+                self.display_image(self.im_mask, sub_title="Segmentation Results")
+        else:
+            with tf.Graph().as_default():
+                # Rescale the image if the nuclei is too small or too big
+                if self.params['scale_ratio'] != 1:
+                    self.im_np = rescale(self.im_np, self.params['scale_ratio'])
+                    self.height, self.width = self.im_np.shape[0], self.im_np.shape[1]
+
+                self.fix_img_dimension()
+                self.im_mask_np = test_single_img_UNet(self.params, [self.im_np])
+
+                # Revert the image size to be the original one
+                if self.params['scale_ratio'] != 1:
+                    self.im_mask_np = rescale(self.im_np, 1/self.params['scale_ratio'])
+                    self.height, self.width = self.im_mask_np.shape[0], self.im_mask_np.shape[1]
+                    self.im_mask_np[self.im_mask_np>0.5] = 1
+                    self.im_mask_np[self.im_mask_np<0.5] = 0
+
+                self.im_mask = PIL.Image.fromarray((self.im_mask_np*255))
+                self.display_image(self.im_mask, sub_title="Segmentation Results")
 
     def segmentation_batch(self):
         self.batch_seg_path = askdirectory(initialdir="C:/Users/",
                             title = "Choose a segmentation directory."
                             )
         self.batch_seg_path = self.batch_seg_path + '/'
-        with tf.Graph().as_default():
-            test(self.params, self)
+        if self.params['model'] == 'NuSeT':
+            with tf.Graph().as_default():
+                test(self.params, self)
+        else:
+            with tf.Graph().as_default():
+                test_UNet(self.params, self)
 
     def fix_img_dimension(self):
         self.height = self.height//16*16
@@ -315,28 +344,38 @@ class NuSeT:
         frame3.pack(side="top")
         frame4 = Frame(win)
         frame4.pack(side="top")
+        frame5 = Frame(win)
+        frame5.pack(side="top")
 
-        learning_rate_label = Label(frame1, text="Learning rate")
+        self.model = StringVar()
+        self.rmsprop_radiobutton = Radiobutton(frame1, text='U-Net', variable=self.model, value='U-Net')
+        self.adam_radiobutton = Radiobutton(frame1, text='NuSeT', variable=self.model, value='NuSeT')
+        self.rmsprop_radiobutton.pack(side="right", fill='both', expand=True, padx=5, pady=5)
+        self.adam_radiobutton.pack(side="right", fill='both', expand=True, padx=5, pady=5)
+        mdl_label = Label(frame1, text="Model")
+        mdl_label.pack(side="left", fill='both', expand=True, padx=5, pady=5)
+
+        learning_rate_label = Label(frame2, text="Learning rate")
         learning_rate_label.pack(side="left", fill='both', expand=True, padx=5, pady=5)
-        self.learning_rate_text = Text(frame1, height=1, width=8, borderwidth=2, relief="groove")
+        self.learning_rate_text = Text(frame2, height=1, width=8, borderwidth=2, relief="groove")
         self.learning_rate_text.insert(END, "0.0001")
         self.learning_rate_text.pack(side="right", fill='both', expand=True, padx=5, pady=5)
 
-        epoch_label = Label(frame2, text="Number of epochs")
+        epoch_label = Label(frame3, text="Number of epochs")
         epoch_label.pack(side="left", fill='both', expand=True, padx=5, pady=5)
-        self.epoch_text = Text(frame2, height=1, width=8, borderwidth=2, relief="groove")
+        self.epoch_text = Text(frame3, height=1, width=8, borderwidth=2, relief="groove")
         self.epoch_text.insert(END, "35")
         self.epoch_text.pack(side="right", fill='both', expand=True, padx=5, pady=5)
 
         self.optmizer = StringVar()
-        self.rmsprop_radiobutton = Radiobutton(frame3, text='Rmsprop', variable=self.optmizer, value='rmsprop')
-        self.adam_radiobutton = Radiobutton(frame3, text='Adam', variable=self.optmizer, value='adam')
+        self.rmsprop_radiobutton = Radiobutton(frame4, text='Rmsprop', variable=self.optmizer, value='rmsprop')
+        self.adam_radiobutton = Radiobutton(frame4, text='Adam', variable=self.optmizer, value='adam')
         self.rmsprop_radiobutton.pack(side="right", fill='both', expand=True, padx=5, pady=5)
         self.adam_radiobutton.pack(side="right", fill='both', expand=True, padx=5, pady=5)
-        opt_label = Label(frame3, text="Optimizer")
+        opt_label = Label(frame4, text="Optimizer")
         opt_label.pack(side="left", fill='both', expand=True, padx=5, pady=5)
 
-        self.save_configuration_btn = Button(frame4, text="Save", command=self.save_train_configurarion)
+        self.save_configuration_btn = Button(frame5, text="Save", command=self.save_train_configurarion)
         self.save_configuration_btn.pack(side="top", fill='both', expand=True, padx=4, pady=4)
 
     def save_train_configurarion(self):
@@ -351,5 +390,6 @@ class NuSeT:
         
         self.params['epochs'] = int(self.epoch_text.get("1.0","end-1c"))
         self.params['optimizer'] = self.optmizer.get()
+        self.params['model'] = self.model.get()
 
 NuSeT(Tk(), "NuSeT")
