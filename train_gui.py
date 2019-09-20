@@ -409,13 +409,13 @@ def train_UNet(self):
 
         self.training_results.set('Epoch' + str(iteration) +
 ', loss ' + '{0:.2f}'.format(loss_total) + ', mean IU ' + '{0:.2f}'.format(_mean_IU))
-    self.window.update()
+        self.window.update()
 
     # Keep track of the best model in the last 10 epoches and use that as the best model
     
-    if iteration >= num_epoch - 10 and normalization_method == 'wn' and _mean_IU > best_IU:
-        best_IU = _mean_IU
-        saver.save(sess, './Network/UNet.ckpt')
+        if iteration >= num_epoch - 10 and normalization_method == 'wn' and _mean_IU > best_IU:
+            best_IU = _mean_IU
+            saver.save(sess, './Network/UNet.ckpt')
         
     sess.close()
     
