@@ -15,7 +15,19 @@ After finishing installing packages, download the 2 weight files from google dri
 https://drive.google.com/file/d/1hythQfvD6kbaUClAPY96nHcXB7RXVmBx/view?usp=sharing), move those files to Network/ folder. 
 Then navigate to the root folder of this repo (NuSeT/), in the command line run *python3 NuSeT.py*.
 <p align="center">
-<img src="https://github.com/yanglf1121/NuSeT/blob/master/sample_results/GUI.png" alt="alt text" width="200">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/GUI_samples/GUI.png" alt="alt text" width="200">
+</p>
+<p align="center">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/GUI_samples/t_configure.png" alt="alt text" width="200">
+</p>
+<p align="center">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/GUI_samples/training.png" alt="alt text" width="400">
+</p>
+<p align="center">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/GUI_samples/p_configure.png" alt="alt text" width="200">
+</p>
+<p align="center">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/GUI_samples/seg-results.png" alt="alt text" width="200">
 </p>
 For the detailed user-guide, please see our paper: https://www.biorxiv.org/content/10.1101/749754v1
 
