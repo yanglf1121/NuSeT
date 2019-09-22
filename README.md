@@ -27,7 +27,7 @@ Then navigate to the root folder of this repo (NuSeT/), in the command line run 
 <img src="https://github.com/yanglf1121/NuSeT/blob/master/GUI_samples/p_configure.png" alt="alt text" width="200">
 </p>
 <p align="center">
-<img src="https://github.com/yanglf1121/NuSeT/blob/master/GUI_samples/seg-results.png" alt="alt text" width="200">
+<img src="https://github.com/yanglf1121/NuSeT/blob/master/GUI_samples/seg-results.png" alt="alt text" width="400">
 </p>
 For the detailed user-guide, please see our paper: https://www.biorxiv.org/content/10.1101/749754v1
 
