@@ -57,6 +57,9 @@ This work took the advantages of two state-of-the-art cell segmentation models, 
 ## Reference and citation
 This work is inspired from https://github.com/tryolabs/luminoth/tree/master/luminoth/models/fasterrcnn, https://github.com/endernewton/tf-faster-rcnn, https://www.kaggle.com/c/data-science-bowl-2018, https://github.com/matterport/Mask_RCNN.
 
+## Road map
+The next step for NuSeT is to include a module that can track cells in time-lapse movies, and output tracking coordinates as csv files.
+
 If you like our NuSeT, here is the paper for this work: https://www.biorxiv.org/content/10.1101/749754v1.
 Please cite this paper if NuSeT helps your work.
 
