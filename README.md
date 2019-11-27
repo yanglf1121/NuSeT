@@ -3,7 +3,7 @@ NuSeT: A Deep Learning Tool for Reliably Separating and Analyzing Crowded Cells
 
 ## To run the code
 The following packages are needed for NuSeT to run:
-1. tensorflow (*pip3 install tensorflow / pip3 install tensorflow-gpu*)
+1. tensorflow (currently only works for tensorflow 1) (*pip3 install tensorflow / pip3 install tensorflow-gpu*)
 2. PIL (*pip3 install Pillow*)
 3. numpy (*pip3 install numpy*)
 4. scikit-image (*pip3 install scikit-image*)
