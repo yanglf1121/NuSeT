@@ -38,12 +38,13 @@ def classBalancemap(mask):
 
     return weight
 
-def unetwmap(mask, w0=10, sigma=25):
+def unetwmap(mask, w0=10, sigma=5):
 
     """
     Calculate the U-Net Weight Map
     Adapted from unetwmap function written by Fidel A. Guerrero Pena
     """
+    
     uvals = np.unique(mask)
     wmp = np.zeros(len(uvals))
 
@@ -74,7 +75,7 @@ def unetwmap(mask, w0=10, sigma=25):
         bwgt = w0 * np.exp(-np.square(d0 + d1) / (2 * sigma)) * (cells == 0)
     # Unet weights
     weight = wc + bwgt
-
+    
     return weight
 
 def bounding_box(mask):
@@ -88,10 +89,10 @@ def bounding_box(mask):
     for k in range (0,num_cells):
         coords_x, coords_y = np.where(mask_label == k+1)
         # The last column is the label, also we give an edge of 10 pix for bbox
-        ymin = max(coords_y.min()-10,0)
-        xmin = max(coords_x.min()-10,0)
-        ymax = min(coords_y.max()+10,width)
-        xmax = min(coords_x.max()+10,height)
+        ymin = max(coords_y.min()-25,0)
+        xmin = max(coords_x.min()-25,0)
+        ymax = min(coords_y.max()+25,width)
+        xmax = min(coords_x.max()+25,height)
         b_box[k,:] = [ymin,xmin,ymax,xmax,1]
 
     return b_box[np.argsort(b_box[:, 0])]
@@ -111,15 +112,23 @@ def load_data_train(self, normalization_method='fg'):
     img_dir = self.train_img_path
     imlabel_dir = self.train_label_path
 
+    img_val_dir = self.val_img_path
+    imlabel_val_dir = self.val_label_path
+
+    # load the val image
     if len(list_files(img_dir, 'png')) > 0:
         all_train = list_files(img_dir, 'png')
+        all_val = list_files(img_val_dir, 'png')
     else:
         all_train = list_files(img_dir, 'tif')
+        all_val = list_files(img_val_dir, 'tif')
 
     if len(list_files(imlabel_dir, 'png')) > 0:
         all_train_label = list_files(imlabel_dir, 'png')
+        all_val_label = list_files(imlabel_val_dir, 'png')
     else:
         all_train_label = list_files(imlabel_dir, 'tif')
+        all_val_label = list_files(imlabel_val_dir, 'tif')
 
     if self.usingCL:
         print('Computing weight matrix ...')
@@ -131,18 +140,27 @@ def load_data_train(self, normalization_method='fg'):
     num_training = len(all_train)
     num_training_label = len(all_train_label)
 
+    num_val = len(all_val)
+    num_val_label = len(all_val_label)
     # The number of training images and training labels should be the same
     assert num_training == num_training_label
+    assert num_val == num_val_label
 
     all_train.sort()
     all_train_label.sort()
+    all_val.sort()
+    all_val_label.sort()
  
     # The training data
     x_train = []
+    x_val = []
     # The training label
     y_train = []
+    y_val = []
     w_train = []
+    w_val = []
     bbox_train = []
+    bbox_val = []
 
     for j in tqdm(range(0,num_training)):
         im = Image.open(img_dir + all_train[j])
@@ -172,26 +190,59 @@ def load_data_train(self, normalization_method='fg'):
         if np.max(iml) > 1:
             y_train.append(iml/np.max(iml))
             w_train.append(unetwmap(iml/np.max(iml)))
+            # for mitosis detection
+            #w_train.append(classBalancemap(iml/np.max(iml)))
             bbox_train.append(bounding_box(iml/np.max(iml)))
             x_train.append(im)   
   
         elif np.max(iml) == 1:
             y_train.append(iml)
             w_train.append(unetwmap(iml))
+            # for mitosis detection
+            #w_train.append(classBalancemap(iml))
             bbox_train.append(bounding_box(iml))
             x_train.append(im)
+    
+    for j in tqdm(range(0,num_val)):
+        im = Image.open(img_val_dir + all_val[j])
+        im = np.asarray(im)
+        if len(im.shape) > 2:
+            r, g, b = im[:,:,0], im[:,:,1], im[:,:,2]
+            im = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        # fix height and width 
+        height,width = im.shape
+        width = width//16*16
+        height = height//16*16
+        im = im[:height,:width]
 
-    # split the train and validation data 7/8 and 1/8 
-    num_train = len(x_train)//8*7
-    num_val = len(x_train) - num_train
-    x_val = x_train[:num_val]
-    x_train = x_train[num_val:len(x_train)]
-    y_val = y_train[:num_val]
-    y_train = y_train[num_val:len(y_train)]
-    w_val = w_train[:num_val]
-    w_train = w_train[num_val:len(w_train)]
-    bbox_val = bbox_train[:num_val] 
-    bbox_train = bbox_train[num_val:len(bbox_train)]
+        iml = Image.open(imlabel_val_dir + all_val_label[j])
+        iml = np.asarray(iml)
+        if len(iml.shape) > 2:
+            r, g, b = iml[:,:,0], iml[:,:,1], iml[:,:,2]
+            iml = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        # fix height and width 
+        height,width = iml.shape
+        width = width//16*16
+        height = height//16*16
+        iml = iml[:height,:width]
+
+        # Remove training images with blank labels/annotations
+        # to avoid dividing by 0
+        if np.max(iml) > 1:
+            y_val.append(iml/np.max(iml))
+            w_val.append(unetwmap(iml/np.max(iml)))
+            # for mitosis detection
+            #w_train.append(classBalancemap(iml/np.max(iml)))
+            bbox_val.append(bounding_box(iml/np.max(iml)))
+            x_val.append(im)   
+  
+        elif np.max(iml) == 1:
+            y_val.append(iml)
+            w_val.append(unetwmap(iml))
+            # for mitosis detection
+            #w_train.append(classBalancemap(iml))
+            bbox_val.append(bounding_box(iml))
+            x_val.append(im)
 
     if self.usingCL:
         print('Normalizing ...')
@@ -209,11 +260,13 @@ def load_data_train(self, normalization_method='fg'):
 
     if normalization_method == 'fg':
         # Normalizing the training data
+        print('fg norm on training data...')
         for i in tqdm(range(len(x_train))):
             x_train[i] = foreground_norm(x_train[i], y_train[i])
 
         # Normalizing the validation data: notice it is normalized 
         # based on whole image norm model predictions
+        print('fg norm on val data...')
         for i in tqdm(range(len(x_val))):
             x_val[i] = foreground_norm(x_val[i], self.whole_norm_y_pred[i])
 

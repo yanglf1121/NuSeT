@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import copy
 
 from PIL import Image
 from tqdm import tqdm
@@ -161,32 +162,42 @@ def train_NuSeT(self):
     num_batches_val = len(x_val) 
 
     saver = tf.train.Saver()
-
-    if normalization_method == 'wn':
-        self.training_results.set('Start whole image Norm. training ...')
-        self.window.update()
-    
-    if normalization_method == 'fg':
-        self.training_results.set('Start Foreground Norm. training ...')
-        self.window.update()
+    # Restore the model from the trained network
+    # saver.restore(sess,'./Network/whole_norm.ckpt')
+    if self.usingCL:
+        if normalization_method == 'wn':
+            print('Start whole image Norm. training ...')
+        
+        if normalization_method == 'fg':
+            print('Start Foreground Norm. training ...')
+    else:
+        if normalization_method == 'wn':
+            self.training_results.set('Start whole image Norm. training ...')
+            self.window.update()
+        
+        if normalization_method == 'fg':
+            self.training_results.set('Start Foreground Norm. training ...')
+            self.window.update()
 
     # training images indexes will be shuffled at every epoch during training
     idx = np.arange(num_batches)
     
     best_IU = 0
+    if normalization_method == 'wn':
+        self.whole_norm_y_pred = []
+
     for iteration in range(0,num_epoch):
         # The batch pointer to validation data
         j = 0
         sess.run(tf.local_variables_initializer())
-        if iteration == num_epoch - 1 and normalization_method == 'wn':
-            self.whole_norm_y_pred = []
 
         # shuffle the sequence of the training data for the current epoch
         np.random.shuffle(idx)
 
         for i in tqdm(range(0,num_batches)):
-            self.train_progress_var.set(i/num_batches*100)
-            self.window.update()
+            if not self.usingCL:
+                self.train_progress_var.set(i/num_batches*100)
+                self.window.update()
             # Generate the batch data from training data and training label
             batch_data = x_train[idx[i]]
             batch_data_shape = batch_data.shape            
@@ -194,7 +205,7 @@ def train_NuSeT(self):
             batch_label = np.reshape(y_train[idx[i]], [1,batch_data_shape[0],batch_data_shape[1],1])
             batch_edge = np.reshape(w_train[idx[i]], [1,batch_data_shape[0],batch_data_shape[1],1])
             batch_bbox = bbox_train[idx[i]]
-            
+            temp_pred = []
             # Skip if this batch does not contain any object (bounding box is null)
             if batch_bbox.size > 0:
                 # Here include the optimizer to actually perform learning
@@ -212,10 +223,10 @@ def train_NuSeT(self):
                         batch_edge = np.reshape(w_val[j], [1,batch_data_shape[0],batch_data_shape[1],1])
                         batch_bbox = bbox_val[j]
                         
-                        # At the end of whole image normalization training,
+                        # At the last 10 turns of whole image normalization training,
                         # cache the predictions 
-                        if iteration == num_epoch - 1 and normalization_method == 'wn':
-                            self.whole_norm_y_pred.append(sess.run(pred_masks, 
+                        if iteration >= num_epoch - 10 and normalization_method == 'wn':
+                            temp_pred.append(sess.run(pred_masks, 
                             feed_dict={train_initial:batch_data, gt_boxes:batch_bbox, labels:batch_label, edge_weights:batch_edge}))
 
 
@@ -250,21 +261,23 @@ def train_NuSeT(self):
                             j = j + 1
 
         print('Epoch: %d - loss: %.2f - cls_loss: %.2f - reg_loss: %.2f - seg_loss: %.2f - mean_IU: %.4f - f1: %.4f - pixel_accuracy: %.4f' % (iteration, loss_total, cls_loss, reg_loss, seg_loss, _mean_IU, _f1, _pixel_accuracy))
-
-        self.training_results.set('Epoch ' + str(iteration) +
- ', loss ' + '{0:.2f}'.format(loss_total) + ', mean IU ' + '{0:.2f}'.format(_mean_IU))
-        self.window.update()
+        if not self.usingCL:
+            self.training_results.set('Epoch ' + str(iteration) +
+    ', loss ' + '{0:.2f}'.format(loss_total) + ', mean IU ' + '{0:.2f}'.format(_mean_IU))
+            self.window.update()
 	
         # Keep track of the best model in the last 10 epoches and use that as the best model
         
         if iteration >= num_epoch - 10 and normalization_method == 'wn' and _mean_IU > best_IU:
             best_IU = _mean_IU
+            self.whole_norm_y_pred = copy.deepcopy(temp_pred)
             saver.save(sess, './Network/whole_norm.ckpt')
 
         if iteration >= num_epoch - 10 and normalization_method == 'fg' and _mean_IU > best_IU:
             best_IU = _mean_IU
             saver.save(sess, './Network/foreground.ckpt')
-        
+
+        temp_pred = []
     sess.close()
 
 # Train the pure U-Net model
@@ -285,8 +298,8 @@ def train_UNet(self):
     # x_train, y_train: training images and corresponding labels
     # x_val, y_val: validation images and corresponding labels
     # w_train, w_val: training and validation weight matrices for U-Net
-    # bbox_train, bbox_val: bounding box coordinates for train and validation dataset
-    x_train, x_val, y_train, y_val, w_train, w_val, bbox_train, bbox_val = load_data_train(self, 'wn')
+    # bbox_train, bbox_val: not used in unet model
+    x_train, x_val, y_train, y_val, w_train, w_val, bbox_train, bbox_val = load_data_train(self, normalization_method)
     
     # pred_dict and pred_dict_final save all the temp variables
     pred_dict_final = {}
@@ -344,33 +357,37 @@ def train_UNet(self):
 
     saver = tf.train.Saver()
 
-    self.training_results.set('U-Net: Start training ...')
-    self.window.update()
+    if not self.usingCL:
+        self.training_results.set('U-Net: Start training ...')
+        self.window.update()
 
     # training images indexes will be shuffled at every epoch during training
     idx = np.arange(num_batches)
     
     best_IU = 0
-    for iteration in range(0,num_epoch):
+
+    if normalization_method == 'wn':
+        self.whole_norm_y_pred = []
+        
+    for iteration in range(num_epoch):
         # The batch pointer to validation data
         j = 0
         sess.run(tf.local_variables_initializer())
-        if iteration == num_epoch - 1 and normalization_method == 'wn':
-            self.whole_norm_y_pred = []
 
         # shuffle the sequence of the training data for the current epoch
         np.random.shuffle(idx)
 
         for i in tqdm(range(0,num_batches)):
-            self.train_progress_var.set(i/num_batches*100)
-            self.window.update()
+            if not self.usingCL:
+                self.train_progress_var.set(i/num_batches*100)
+                self.window.update()
             # Generate the batch data from training data and training label
             batch_data = x_train[idx[i]]
             batch_data_shape = batch_data.shape            
             batch_data = np.reshape(batch_data, [1,batch_data_shape[0],batch_data_shape[1],1])
             batch_label = np.reshape(y_train[idx[i]], [1,batch_data_shape[0],batch_data_shape[1],1])
             batch_edge = np.reshape(w_train[idx[i]], [1,batch_data_shape[0],batch_data_shape[1],1])
-
+            temp_pred = []
             # Here include the optimizer to actually perform learning
             sess.run([gen_train_op], feed_dict={train_initial:batch_data, labels:batch_label, edge_weights:batch_edge})
 
@@ -384,6 +401,11 @@ def train_UNet(self):
                     batch_data = np.reshape(batch_data, [1,batch_data_shape[0],batch_data_shape[1],1])
                     batch_label = np.reshape(y_val[j], [1,batch_data_shape[0],batch_data_shape[1],1])
                     batch_edge = np.reshape(w_val[j], [1,batch_data_shape[0],batch_data_shape[1],1])
+                    # At the last 10 turns of whole image normalization training,
+                    # cache the predictions 
+                    if iteration >= num_epoch - 10 and normalization_method == 'wn':
+                        temp_pred.append(sess.run(pred_masks, 
+                        feed_dict={train_initial:batch_data, labels:batch_label, edge_weights:batch_edge}))
 
                     loss_temp  = sess.run(final_loss, feed_dict={train_initial:batch_data, labels:batch_label, edge_weights:batch_edge})
 
@@ -404,18 +426,22 @@ def train_UNet(self):
                         loss_total = (1 - 1 / (j + 1)) * loss_total + 1 / (j + 1) * loss_temp
                                     
                     j = j + 1
-
+        
         print('Epoch: %d - loss: %.2f - mean_IU: %.4f - f1: %.4f - pixel_accuracy: %.4f' % (iteration, loss_total, _mean_IU, _f1, _pixel_accuracy))
-
-        self.training_results.set('Epoch ' + str(iteration) +
-', loss ' + '{0:.2f}'.format(loss_total) + ', mean IU ' + '{0:.2f}'.format(_mean_IU))
-        self.window.update()
+        if not self.usingCL:
+            self.training_results.set('Epoch ' + str(iteration) +
+    ', loss ' + '{0:.2f}'.format(loss_total) + ', mean IU ' + '{0:.2f}'.format(_mean_IU))
+            self.window.update()
 
     # Keep track of the best model in the last 10 epoches and use that as the best model
     
-        if iteration >= num_epoch - 10 and _mean_IU > best_IU:
+        if iteration >= num_epoch - 10 and normalization_method == 'wn' and _mean_IU > best_IU:
             best_IU = _mean_IU
-            saver.save(sess, './Network/UNet.ckpt')
+            self.whole_norm_y_pred = copy.deepcopy(temp_pred)
+            saver.save(sess, './Network/UNet_whole_norm.ckpt')
+        if iteration >= num_epoch - 10 and normalization_method == 'fg' and _mean_IU > best_IU:
+            best_IU = _mean_IU
+            saver.save(sess, './Network/UNet_foreground.ckpt')
         
     sess.close()
     

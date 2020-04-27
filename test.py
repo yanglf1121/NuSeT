@@ -148,8 +148,9 @@ def test(params, self):
         
         
         masks = sess.run(pred_masks, feed_dict={train_initial:image_normalized_wn})
-        self.progress_var.set(j/2/num_batches_test*100)
-        self.window.update()
+        if not self.usingCL:
+            self.progress_var.set(j/2/num_batches_test*100)
+            self.window.update()
             
         # First pass, get the coarse masks, and normalize the image on masks
         masks1.append(masks)
@@ -210,9 +211,9 @@ def test(params, self):
             I8 = (((masks - masks.min()) / (masks.max() - masks.min())) * 255).astype(np.uint8)
             img = Image.fromarray(I8)
             img.save(self.batch_seg_path + x_id[j] + '_masks.png')
-
-        self.progress_var.set(50 + j/2/num_batches_test*100)
-        self.window.update()
+        if not self.usingCL:
+            self.progress_var.set(50 + j/2/num_batches_test*100)
+            self.window.update()
     sess.close()
 
 # This function is similar to the function above, but only for one image that is 
@@ -314,7 +315,6 @@ def test_single_img(params, x_test):
 
     # Restore the per-image normalization model from the trained network
     saver.restore(sess,'./Network/whole_norm.ckpt')
-    #saver.restore(sess,'./Network/whole_norm_weights_fluorescent/'+str(3)+'.ckpt')
     sess.run(tf.local_variables_initializer())
     for j in tqdm(range(0,num_batches_test)):
         # whole image normalization   
@@ -432,8 +432,9 @@ def test_UNet(params, self):
         
         
         masks = sess.run(pred_masks, feed_dict={train_initial:image_normalized_wn})
-        self.progress_var.set(j/num_batches_test*100)
-        self.window.update()
+        if not self.usingCL:
+            self.progress_var.set(j/num_batches_test*100)
+            self.window.update()
         if postProcess == 'yes':
             masks = clean_image(masks)
 
