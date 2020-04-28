@@ -2,12 +2,12 @@
 NuSeT: A Deep Learning Tool for Reliably Separating and Analyzing Crowded Cells
 
 ## To run the code
-The following packages are needed for NuSeT to run:
-1. tensorflow (currently only works for tensorflow 1) (*pip3 install tensorflow==1.15 / pip3 install tensorflow-gpu==1.15*)
-2. PIL (*pip3 install Pillow*)
-3. numpy (*pip3 install numpy*)
-4. scikit-image (*pip3 install scikit-image*)
-5. tqdm (*pip3 install tqdm*)
+The model was bulit on python3 and tensorflow 1, the following packages are needed for NuSeT to run:
+1. tensorflow (currently only works for tensorflow 1) (*pip install tensorflow==1.15 / pip install tensorflow-gpu==1.15*)
+2. PIL (*pip install Pillow*)
+3. numpy (*pip install numpy*)
+4. scikit-image (*pip install scikit-image*)
+5. tqdm (*pip install tqdm*)
 
 **NuSeT works better for moderate sized nuclei/cells, please adjust the 'resize ratio' in 'Configuration' section under 'Predicting' module. For optimal nuclei/cells sizes, please refer to images under 'sample_image' folder.**
 
@@ -57,8 +57,6 @@ This work took the advantages of two state-of-the-art cell segmentation models, 
 ## Reference and citation
 This work is inspired from https://github.com/tryolabs/luminoth/tree/master/luminoth/models/fasterrcnn, https://github.com/endernewton/tf-faster-rcnn, https://www.kaggle.com/c/data-science-bowl-2018, https://github.com/matterport/Mask_RCNN.
 
-## Road map
-The next step for NuSeT is to include a module that can track cells in time-lapse movies, and output tracking coordinates as csv files.
 
 If you like our NuSeT, here is the paper for this work: https://www.biorxiv.org/content/10.1101/749754v1.
 Please cite this paper if NuSeT helps your work.
