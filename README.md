@@ -11,6 +11,8 @@ The model was bulit on python3 and tensorflow 1, the following packages are need
 
 **NuSeT works better for moderate sized nuclei/cells, please adjust the 'resize ratio' in 'Configuration' section under 'Predicting' module. For optimal nuclei/cells sizes, please refer to images under 'sample_image' folder.**
 
+**Update: we have noticed that the new OS update on Macbook is conflicting with tkinter graphic user interface, if that is the case, please use the NuSeT_CL (command line version) instead**
+
 After finishing installing packages, download the 2 weight files from google drive:(https://drive.google.com/file/d/1fcs1F2lGPX0ejzEGPZ63YNF3AmUbdBcM/view?usp=sharing
 https://drive.google.com/file/d/1hythQfvD6kbaUClAPY96nHcXB7RXVmBx/view?usp=sharing), move those files to Network/ folder. 
 Then navigate to the root folder of this repo (NuSeT/), in the command line run *python3 NuSeT.py*.
