@@ -9,6 +9,8 @@ The model was bulit on python3 and tensorflow 1, the following packages are need
 4. scikit-image (*pip install scikit-image*)
 5. tqdm (*pip install tqdm*)
 
+**To install all packages, simply run *python setup.py* in the root directory**
+
 **NuSeT works better for moderate sized nuclei/cells, please adjust the 'resize ratio' in 'Configuration' section under 'Predicting' module. For optimal nuclei/cells sizes, please refer to images under 'sample_image' folder.**
 
 **Update: we have noticed that the new OS update on Macbook is conflicting with tkinter graphic user interface, if that is the case, please use the NuSeT_CL (command line version) instead**
