@@ -52,19 +52,17 @@ def UNET(nb_classes, inputs):
     #nb_neurons = genome.nb_neurons()
 
     padding = 'same'
-    # input is in shape: ?,448,448,1
     # Conv block 1
     outputs = tf.layers.conv2d(inputs, 64, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv1-1', use_bias=True)
     outputs = tf.nn.relu(outputs)
     
     outputs = tf.layers.conv2d(outputs, 64, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv1-2', use_bias=True)
     outputs = tf.nn.relu(outputs)
-    # Make a copy of conv1 output tensor (shape: ?,448,448,64)
+    # Make a copy of conv1 output tensor 
     conv1_output = outputs
     
     # Down-sample 1
     outputs = tf.layers.max_pooling2d(outputs,pool_size = 2,strides = 2,padding=padding)
-    # Now is ?,224,224,64
     
     # Conv block 2
     outputs = tf.layers.conv2d(outputs, 128, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv2-1', use_bias=True)
@@ -72,7 +70,7 @@ def UNET(nb_classes, inputs):
 
     outputs = tf.layers.conv2d(outputs, 128, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv2-2', use_bias=True)
     outputs = tf.nn.relu(outputs)
-    # Make a copy of conv2 output tensor (shape: ?,216,216,128)
+    # Make a copy of conv2 output tensor 
     conv2_output = outputs
     
     # Down-sample 2
@@ -85,12 +83,11 @@ def UNET(nb_classes, inputs):
 
     outputs = tf.layers.conv2d(outputs, 256, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv3-2', use_bias=True)
     outputs = tf.nn.relu(outputs)
-    # Make a copy of conv3 output tensor (shape: ?,108,108,256)
+    # Make a copy of conv3 output tensor 
     conv3_output = outputs
     
     # Down-sample 3
     outputs = tf.layers.max_pooling2d(outputs,pool_size = 2,strides = 2,padding=padding)
-    # Now is ?,56,56,256
     
     # Conv block 4
     outputs = tf.layers.conv2d(outputs, 512, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv4-1', use_bias=True)
@@ -98,12 +95,11 @@ def UNET(nb_classes, inputs):
 
     outputs = tf.layers.conv2d(outputs, 512, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv4-2', use_bias=True)
     outputs = tf.nn.relu(outputs)
-    # Make a copy of conv4 output tensor (shape: ?,54,54,512)
+    # Make a copy of conv4 output tensor 
     conv4_output = outputs
     
     # Down-sample 4
     outputs = tf.layers.max_pooling2d(outputs,pool_size = 2,strides = 2,padding=padding)
-    # Now is ?,28,28,512
     
     # Get extracted feature for RPN
     rpn_feature = outputs
@@ -115,15 +111,19 @@ def UNET(nb_classes, inputs):
 
     outputs = tf.layers.conv2d(outputs, 1024, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv5-2', use_bias=True)
     outputs = tf.nn.relu(outputs)
-    # Now is ?,28,28,1024
     
     
     # Up-sample(Conv_transpose) 4
     outputs = tf.layers.conv2d_transpose(outputs, 512, 3, strides=(2, 2),
  padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), use_bias=True)
     outputs = tf.nn.relu(outputs)
+    
+    # changing the former line to the line below will connect the 4th layer on both ends, 
+    # and form the classic U-Net architecture, but in our experiments we found this did 
+    # not gain a better performance, also thanks for Meryem Uzun-Per for pointing this out
+    
+    # outputs = tf.concat([conv4_output, outputs], 3)
 
-    # Now is ?,56,56,512
     
     # Conv block 4'
     outputs = tf.layers.conv2d(outputs, 512, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv4-3', use_bias=True)
@@ -136,7 +136,6 @@ def UNET(nb_classes, inputs):
     outputs = tf.layers.conv2d_transpose(outputs, 256, 3, strides=(2, 2),
  padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), use_bias=True)
     outputs = tf.concat([conv3_output, outputs], 3)
-    # Now is ?,112,112,256
     
     # Conv block 3'
     outputs = tf.layers.conv2d(outputs, 256, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv3-3', use_bias=True)
@@ -149,7 +148,6 @@ def UNET(nb_classes, inputs):
     outputs = tf.layers.conv2d_transpose(outputs, 128, 3, strides=(2, 2),
  padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), use_bias=True)
     outputs = tf.concat([conv2_output, outputs], 3)
-    # Now is ?,224,224,128
     
     # Conv block 2'
     outputs = tf.layers.conv2d(outputs, 128, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv2-3', use_bias=True)
@@ -162,7 +160,6 @@ def UNET(nb_classes, inputs):
     outputs = tf.layers.conv2d_transpose(outputs, 64, 3, strides=(2, 2),
  padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), use_bias=True)
     outputs = tf.concat([conv1_output, outputs], 3)
-    # Now is ?,448,448,64
     
     # Conv block 2'
     outputs = tf.layers.conv2d(outputs, 64, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv1-3', use_bias=True)
@@ -171,7 +168,7 @@ def UNET(nb_classes, inputs):
     outputs = tf.layers.conv2d(outputs, 64, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='conv1-4', use_bias=True)
     outputs = tf.nn.relu(outputs)
     
-    # only output 2 featuremap at the end
+    # only output 2 featuremaps at the end
     outputs = tf.layers.conv2d(outputs, nb_classes, 3, padding=padding, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='final', use_bias=False)
     
     return outputs, rpn_feature
