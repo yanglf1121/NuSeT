@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from setuptools.command.install import install
 
 
 entry_points = {'console_scripts': ['nuset_gui=NuSeT:main']}
@@ -7,7 +8,6 @@ install_requires = \
     [
         "numpy", # newer numpy won't work with scikit-learn 0.13
         "scikit-image~=0.15.0", # newer scikit-image don't have the `min_size` kwarg for skimage.morphology.remove_small_holes
-        "tensorflow==1.15", # tensorflow 1.15 required numpy>=1.16
         "Pillow",
         "tqdm"
     ]
