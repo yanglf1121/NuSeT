@@ -26,6 +26,8 @@ from utils.normalization import whole_image_norm, foreground_norm, clean_image
 from utils.losses import smooth_l1_loss
 from utils.image_vis import draw_rpn_bbox_pred, draw_gt_boxes, draw_top_nms_proposals, draw_rpn_bbox_targets, draw_rpn_bbox_pred_only 
 
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
 
 # inspired from https://github.com/tryolabs/luminoth/blob/master/luminoth/models/fasterrcnn/rpn_test.py
 def test(params, self):

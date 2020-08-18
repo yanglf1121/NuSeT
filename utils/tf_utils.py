@@ -3,6 +3,9 @@ Helper functions to build up the networks and make it looks neat
 """
 import tensorflow as tf
 
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+
 def leaky_relu(inputs, alpha = 0.01):
     return 0.5 * (1 + alpha) * inputs + 0.5 * (1-alpha) * tf.abs(inputs)
 
