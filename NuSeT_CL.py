@@ -6,9 +6,6 @@ import tensorflow as tf
 from test import test, test_single_img, test_UNet, test_single_img_UNet
 from train_gui import train_NuSeT, train_UNet 
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-
 class NuSeT_CL:
     def __init__(self):
         self.params = {}

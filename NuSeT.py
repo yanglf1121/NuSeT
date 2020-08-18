@@ -16,10 +16,6 @@ BUTTON_WIDTH = 24
 PADX = 3
 PADY = 5
 progressbarLen = 270
-
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-
 class NuSeT:
     def __init__(self, window, window_title):
         self.params = {}
