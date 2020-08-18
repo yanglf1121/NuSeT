@@ -138,3 +138,7 @@ dmypy.json
 cython_debug/
 
 .idea/
+
+# network weights
+./Network/foreground.ckpt.data-00000-of-00001
+./Network/whole_norm.ckpt.data-00000-of-00001
