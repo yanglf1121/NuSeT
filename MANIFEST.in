@@ -1,0 +1,7 @@
+include LICENSE
+include README.md
+recursive-include GUI_samples/*
+recursive-include Network/*
+recursive-include sample_image/*
+recursive-include sample_results/*
+

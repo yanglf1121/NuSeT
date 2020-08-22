@@ -31,6 +31,9 @@ class NuSeT:
         self.params['scale_ratio'] = 1.0
         self.params['model'] = 'NuSeT'
 
+        # I'm guessing usingCL stands for using command-line, since it's set to `True` in the NuSeT_CL class
+        self.usingCL = False
+
         self.window = window
         self.window.title(window_title)
         self.window.geometry('250x410')
@@ -394,4 +397,6 @@ class NuSeT:
         if self.model.get() != "":
             self.params['model'] = self.model.get()
 
-NuSeT(Tk(), "NuSeT")
+
+def main():
+    NuSeT(Tk(), "NuSeT")

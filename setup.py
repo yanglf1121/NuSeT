@@ -1,38 +1,42 @@
-import subprocess
-import sys
+from setuptools import setup, find_packages
+from setuptools.command.install import install
 
-def install_package(pack_name):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", pack_name])
 
-# Install tensorflow
-try:
-    import tensorflow as tf
-    tfVersion = tf.__version__.split('.')
-    # if not using tensorflow 1
-    if tfVersion[0] != '1':
-        install_package('tensorflow==1.15')
+entry_points = {'console_scripts': ['nuset_gui=NuSeT:main']}
 
-    # if version of tensorflow 1 is too old
-    elif int(tfVersion[1]) < 13:
-        install_package('tensorflow==1.15')
-    
-except ImportError:
-    install_package('tensorflow==1.15')
+install_requires = \
+    [
+        "numpy", # newer numpy won't work with scikit-learn 0.13
+        "scikit-image~=0.15.0", # newer scikit-image don't have the `min_size` kwarg for skimage.morphology.remove_small_holes
+        "Pillow",
+        "tqdm"
+    ]
 
-# install numpy
-try:
-    import numpy as np 
-except ImportError:
-    install_package('numpy')
+classifiers = \
+    [
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows :: Windows 10",
+        "Topic :: Scientific/Engineering :: Image Recognition",
+        "Intended Audience :: Science/Research"
+    ]
 
-# install scikit-image
-try:
-    from PIL import Image
-except ImportError:
-    install_package('scikit-image')
+with open("README.md", 'r') as fh:
+    long_description = fh.read()
 
-# install tqdm
-try:
-    from tqdm import tqdm
-except ImportError:
-    install_package('tqdm')
+setup(
+    name='nuset',
+    version='0.1.0',
+    packages=find_packages(),
+    include_package_data=True,
+    entry_points=entry_points,
+    url='https://github.com/yanglf1121/NuSeT',
+    license='MIT License',
+    description='',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    classifiers=classifiers,
+    install_requires=install_requires
+)

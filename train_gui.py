@@ -186,6 +186,15 @@ def train_NuSeT(self):
     if normalization_method == 'wn':
         self.whole_norm_y_pred = []
 
+    # The print statement at the end of the loop (line 272) fail without these vars being initialized
+    loss_total = 0
+    cls_loss = 0
+    reg_loss = 0
+    seg_loss = 0
+    _mean_IU = 0
+    _f1 = 0
+    _pixel_accuracy = 0
+
     for iteration in range(0,num_epoch):
         # The batch pointer to validation data
         j = 0
